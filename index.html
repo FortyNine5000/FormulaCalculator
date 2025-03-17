@@ -2,10 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>G-Tube Formula Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body { 
-      font-family: Arial, sans-serif; 
+      font-family: 'Roboto', sans-serif; 
       background: #f8f8f8; 
       margin: 0; 
       padding: 20px;
@@ -18,18 +20,20 @@
       border-radius: 8px; 
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    h1 { text-align: center; }
+    h1 { text-align: center; color: #333; }
     label { 
       font-weight: bold; 
       display: block; 
       margin-top: 15px;
+      color: #555;
     }
-    input[type="number"], input[type="text"], select { 
+    input[type="number"], input[type="text"], select {
       width: 100%; 
       padding: 8px; 
       margin-top: 5px; 
       border: 1px solid #ccc; 
       border-radius: 4px;
+      font-size: 1em;
     }
     button { 
       padding: 10px 20px; 
@@ -49,16 +53,70 @@
       margin-top: 20px; 
       border-radius: 4px;
     }
-    .custom-fields { display: none; margin-top: 15px; padding: 15px; background: #f1f1f1; border-radius: 4px; }
+    .custom-fields, .custom-pump { 
+      display: none; 
+      margin-top: 15px; 
+      padding: 15px; 
+      background: #f1f1f1; 
+      border-radius: 4px; 
+    }
+    .manufacturer-instructions { 
+      margin-top: 10px; 
+      padding: 10px; 
+      background: #dfefff; 
+      border-radius: 4px; 
+      font-style: italic; 
+      color: #333; 
+    }
+    /* Pump Selection Radio Group */
+    .pump-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .pump-option {
+      flex: 1 1 45%;
+      background: #fafafa;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 5px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .pump-option input[type="radio"] {
+      display: none;
+    }
+    .pump-option img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .pump-option label {
+      display: block;
+      margin-top: 5px;
+      font-size: 0.9em;
+    }
+    /* Highlight selected option */
+    .pump-option.selected {
+      border-color: #007BFF;
+      background: #e0f0ff;
+    }
+    @media (max-width: 480px) {
+      .pump-option {
+        flex: 1 1 100%;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>G-Tube Formula Calculator</h1>
-    <p>This tool calculates the water and formula powder needed, adjusting for the extra volume added by the powder.</p>
+    <p>This tool calculates the water and formula powder needed (adjusting for powder volume) and displays manufacturer mixing instructions. It also lets you select your pump type (with images) so its priming volume is factored into the mix.</p>
     <form id="calcForm">
+      <!-- Formula selection -->
       <label for="formulaSelect">Select Formula:</label>
-      <select id="formulaSelect" onchange="updateCustomFields()">
+      <select id="formulaSelect" onchange="updateCustomFields(); updateManufacturerInstructions();">
         <option value="Alimentum">Alimentum</option>
         <option value="Similac Neosure">Similac Neosure</option>
         <option value="Enfamil Nutramigen">Enfamil Nutramigen</option>
@@ -72,6 +130,10 @@
         <option value="Custom">Custom</option>
       </select>
       
+      <div id="manufacturerInstructions" class="manufacturer-instructions">
+        <!-- Manufacturer instructions will be inserted here -->
+      </div>
+      
       <div id="customFields" class="custom-fields">
         <label for="customBaselineCal">Baseline Calories per Ounce (default 20):</label>
         <input type="number" id="customBaselineCal" step="0.1" value="20">
@@ -83,6 +145,7 @@
         <input type="number" id="customPowderVolume" step="0.01" value="0.2">
       </div>
       
+      <!-- Desired concentration and feed info -->
       <label for="desiredCal">Desired Calories per Ounce (e.g., 22):</label>
       <input type="number" id="desiredCal" step="0.1" value="22" required>
       
@@ -92,8 +155,39 @@
       <label for="mlPerFeed">Milliliters per Feed:</label>
       <input type="number" id="mlPerFeed" value="150" required>
       
-      <label for="pumpPriming">Pump Priming Volume (ml):</label>
-      <input type="number" id="pumpPriming" value="15" required>
+      <!-- Pump Selection Section -->
+      <label>Select Pump Type:</label>
+      <div class="pump-options" id="pumpOptions">
+        <!-- Infinity -->
+        <div class="pump-option" onclick="selectPumpOption(this, 'Infinity');">
+          <input type="radio" name="pumpType" value="Infinity">
+          <img src="https://via.placeholder.com/100?text=Infinity" alt="Infinity Pump">
+          <label>Infinity (15 mL prime)</label>
+        </div>
+        <!-- Kangaroo OMNI -->
+        <div class="pump-option" onclick="selectPumpOption(this, 'Kangaroo OMNI');">
+          <input type="radio" name="pumpType" value="Kangaroo OMNI">
+          <img src="https://via.placeholder.com/100?text=Kangaroo+OMNI" alt="Kangaroo OMNI">
+          <label>Kangaroo OMNI (20 mL prime)</label>
+        </div>
+        <!-- Puggle -->
+        <div class="pump-option" onclick="selectPumpOption(this, 'Puggle');">
+          <input type="radio" name="pumpType" value="Puggle">
+          <img src="https://via.placeholder.com/100?text=Puggle" alt="Puggle">
+          <label>Puggle (10 mL prime)</label>
+        </div>
+        <!-- Other -->
+        <div class="pump-option" onclick="selectPumpOption(this, 'Other');">
+          <input type="radio" name="pumpType" value="Other">
+          <img src="https://via.placeholder.com/100?text=Other" alt="Other Pump">
+          <label>Other</label>
+        </div>
+      </div>
+      
+      <div id="customPump" class="custom-pump">
+        <label for="customPumpPriming">Enter Custom Pump Priming Volume (ml):</label>
+        <input type="number" id="customPumpPriming" step="0.1" value="15">
+      </div>
       
       <label for="spillExtra">Extra Volume for Spills (ml):</label>
       <input type="number" id="spillExtra" value="30" required>
@@ -105,73 +199,168 @@
   </div>
   
   <script>
-    // Data for the 10 popular formulas (mixing instructions are based on a standard 20 cal/oz mix)
+    // Data for formulas with manufacturer instructions
     const formulaData = {
-      "Alimentum": { baselineCal: 20, scoopsPerOz: 0.5, powderVolumePerScoop: 0.2 },
-      "Similac Neosure": { baselineCal: 20, scoopsPerOz: 0.5, powderVolumePerScoop: 0.2 },
-      "Enfamil Nutramigen": { baselineCal: 20, scoopsPerOz: 0.5, powderVolumePerScoop: 0.2 },
-      "Enfamil A.R.": { baselineCal: 20, scoopsPerOz: 0.5, powderVolumePerScoop: 0.2 },
-      "EleCare": { baselineCal: 20, scoopsPerOz: 0.5, powderVolumePerScoop: 0.2 },
-      "Neocate Infant DHA/ARA": { baselineCal: 20, scoopsPerOz: 0.5, powderVolumePerScoop: 0.2 },
-      "Nutramigen with Enflora": { baselineCal: 20, scoopsPerOz: 0.5, powderVolumePerScoop: 0.2 },
-      "Gerber Good Start": { baselineCal: 20, scoopsPerOz: 0.5, powderVolumePerScoop: 0.2 },
-      "PurAmino": { baselineCal: 20, scoopsPerOz: 0.5, powderVolumePerScoop: 0.2 },
-      "Similac Sensitive": { baselineCal: 20, scoopsPerOz: 0.5, powderVolumePerScoop: 0.2 },
-      "Custom": { baselineCal: 20, scoopsPerOz: 0.5, powderVolumePerScoop: 0.2 },
+      "Alimentum": { 
+        baselineCal: 20, 
+        scoopsPerOz: 0.5, 
+        powderVolumePerScoop: 0.2,
+        instructions: "Alimentum: Mix 1 scoop per 2 oz water to achieve a 20 cal/oz formula. Adjust as needed."
+      },
+      "Similac Neosure": { 
+        baselineCal: 20, 
+        scoopsPerOz: 0.5, 
+        powderVolumePerScoop: 0.2,
+        instructions: "Similac Neosure: Prepare as directed—typically 1 scoop per 2 oz water for a 20 cal/oz formula."
+      },
+      "Enfamil Nutramigen": { 
+        baselineCal: 20, 
+        scoopsPerOz: 0.5, 
+        powderVolumePerScoop: 0.2,
+        instructions: "Enfamil Nutramigen: Mix 1 scoop per 2 oz water for a 20 cal/oz formula. Check the label for details."
+      },
+      "Enfamil A.R.": { 
+        baselineCal: 20, 
+        scoopsPerOz: 0.5, 
+        powderVolumePerScoop: 0.2,
+        instructions: "Enfamil A.R.: Typically 1 scoop per 2 oz water yields a 20 cal/oz formula. Refer to the packaging."
+      },
+      "EleCare": { 
+        baselineCal: 20, 
+        scoopsPerOz: 0.5, 
+        powderVolumePerScoop: 0.2,
+        instructions: "EleCare: Use 1 scoop per 2 oz water to make a 20 cal/oz formula. Confirm with the product label."
+      },
+      "Neocate Infant DHA/ARA": { 
+        baselineCal: 20, 
+        scoopsPerOz: 0.5, 
+        powderVolumePerScoop: 0.2,
+        instructions: "Neocate Infant DHA/ARA: Mix as instructed—generally 1 scoop per 2 oz water for a 20 cal/oz formula."
+      },
+      "Nutramigen with Enflora": { 
+        baselineCal: 20, 
+        scoopsPerOz: 0.5, 
+        powderVolumePerScoop: 0.2,
+        instructions: "Nutramigen with Enflora: Prepare using 1 scoop per 2 oz water for a 20 cal/oz formula."
+      },
+      "Gerber Good Start": { 
+        baselineCal: 20, 
+        scoopsPerOz: 0.5, 
+        powderVolumePerScoop: 0.2,
+        instructions: "Gerber Good Start: Mix 1 scoop per 2 oz water for a 20 cal/oz formula. Consult the packaging."
+      },
+      "PurAmino": { 
+        baselineCal: 20, 
+        scoopsPerOz: 0.5, 
+        powderVolumePerScoop: 0.2,
+        instructions: "PurAmino: Follow the guidelines—typically 1 scoop per 2 oz water for a 20 cal/oz formula."
+      },
+      "Similac Sensitive": { 
+        baselineCal: 20, 
+        scoopsPerOz: 0.5, 
+        powderVolumePerScoop: 0.2,
+        instructions: "Similac Sensitive: Prepare using 1 scoop per 2 oz water to yield a 20 cal/oz formula."
+      },
+      "Custom": { 
+        baselineCal: 20, 
+        scoopsPerOz: 0.5, 
+        powderVolumePerScoop: 0.2,
+        instructions: "Enter your custom mixing instructions in the fields below."
+      }
     };
     
-    // Show or hide custom fields based on selection
+    // Pump priming volumes (in mL) for popular pumps
+    const pumpData = {
+      "Infinity": 15,
+      "Kangaroo OMNI": 20,
+      "Puggle": 10,
+      "Other": 15 // default if custom not provided
+    };
+    
+    // Function to handle pump option selection with images
+    function selectPumpOption(divElem, value) {
+      // Deselect all options
+      const options = document.querySelectorAll('.pump-option');
+      options.forEach(opt => opt.classList.remove('selected'));
+      // Mark this one as selected and check its radio button
+      divElem.classList.add('selected');
+      divElem.querySelector('input[type="radio"]').checked = true;
+    }
+    
+    // Show/hide custom fields for custom formula settings
     function updateCustomFields() {
       const formulaSelect = document.getElementById('formulaSelect').value;
       const customFields = document.getElementById('customFields');
-      if (formulaSelect === "Custom") {
-        customFields.style.display = "block";
-      } else {
-        customFields.style.display = "none";
-      }
+      customFields.style.display = (formulaSelect === "Custom") ? "block" : "none";
     }
     
+    // Update manufacturer instructions based on selected formula
+    function updateManufacturerInstructions() {
+      const formulaName = document.getElementById('formulaSelect').value;
+      const instructionsDiv = document.getElementById('manufacturerInstructions');
+      instructionsDiv.innerHTML = formulaData[formulaName].instructions;
+    }
+    
+    // Main calculation function
     function calculateFormula() {
-      // Get selected formula and mixing parameters
+      // Get formula mixing parameters
       const formulaName = document.getElementById('formulaSelect').value;
       let baselineCal = formulaData[formulaName].baselineCal;
       let scoopsPerOz = formulaData[formulaName].scoopsPerOz;
       let powderVolumePerScoop = formulaData[formulaName].powderVolumePerScoop;
       
-      // If custom, override with user inputs
       if (formulaName === "Custom") {
         baselineCal = parseFloat(document.getElementById('customBaselineCal').value);
         scoopsPerOz = parseFloat(document.getElementById('customScoopsPerOz').value);
         powderVolumePerScoop = parseFloat(document.getElementById('customPowderVolume').value);
       }
       
-      // Retrieve other input values
+      // Get feed info and desired concentration
       const desiredCal = parseFloat(document.getElementById('desiredCal').value);
       const feeds = parseFloat(document.getElementById('feeds').value);
       const mlPerFeed = parseFloat(document.getElementById('mlPerFeed').value);
-      const pumpPriming = parseFloat(document.getElementById('pumpPriming').value);
       const spillExtra = parseFloat(document.getElementById('spillExtra').value);
       
-      // Total final volume in ml
+      // Determine pump priming volume based on selected pump
+      let pumpPriming = 0;
+      const pumpRadios = document.getElementsByName('pumpType');
+      let pumpSelected = false;
+      // If radio buttons exist, get value from selected; else, use default from pumpData
+      const selectedRadio = document.querySelector('input[name="pumpType"]:checked');
+      if (selectedRadio) {
+        pumpSelected = selectedRadio.value;
+      } else {
+        // Fallback: check custom selection via our pump options div selection
+        const pumpOption = document.querySelector('.pump-option.selected');
+        pumpSelected = pumpOption ? pumpOption.querySelector('input[type="radio"]').value : "Infinity";
+      }
+      if (pumpSelected === "Other") {
+        pumpPriming = parseFloat(document.getElementById('customPumpPriming').value);
+      } else {
+        pumpPriming = pumpData[pumpSelected];
+      }
+      
+      // Total final formula volume in ml and oz
       const totalFinalVolumeML = (feeds * mlPerFeed) + pumpPriming + spillExtra;
-      // Convert to ounces (1 oz = 29.5735 ml)
       const totalFinalVolumeOz = totalFinalVolumeML / 29.5735;
       
-      // Scaling factor for desired concentration vs. baseline
+      // Scaling factor for desired vs. baseline calories per oz
       const scalingFactor = desiredCal / baselineCal;
       
-      // Calculate water volume (W) needed (in oz) given that:
-      // Final volume = Water volume (W) + (scalingFactor * W * scoopsPerOz * powderVolumePerScoop)
-      // Thus: W = totalFinalVolumeOz / [1 + (scalingFactor * scoopsPerOz * powderVolumePerScoop)]
+      // Calculate water volume (W) in oz such that:
+      // Final Volume = Water Volume + (scalingFactor * waterVolume * scoopsPerOz * powderVolumePerScoop)
       const waterVolumeOz = totalFinalVolumeOz / (1 + (scalingFactor * scoopsPerOz * powderVolumePerScoop));
       
-      // Number of scoops required = scalingFactor * (waterVolume * scoopsPerOz)
+      // Calculate formula powder required
       const scoopsNeeded = scalingFactor * (waterVolumeOz * scoopsPerOz);
       
       // Convert water volume back to ml
       const waterVolumeML = waterVolumeOz * 29.5735;
       
-      // Display results
+      // Since the calculation is designed to reach desiredCal, final concentration is:
+      const finalConcentration = desiredCal;
+      
+      // Display results with confirmation of output concentration
       const outputDiv = document.getElementById('output');
       outputDiv.style.display = "block";
       outputDiv.innerHTML = `
@@ -180,10 +369,9 @@
         <p><strong>Total Final Formula Volume:</strong> ${totalFinalVolumeOz.toFixed(2)} oz (${totalFinalVolumeML.toFixed(0)} ml)</p>
         <p><strong>Water Volume to Add:</strong> ${waterVolumeOz.toFixed(2)} oz (${waterVolumeML.toFixed(0)} ml)</p>
         <p><strong>Formula Powder Required:</strong> ${scoopsNeeded.toFixed(2)} scoops</p>
+        <p><strong>Final Output Concentration:</strong> ${finalConcentration.toFixed(1)} cal/oz</p>
         <p>
-          Based on ${feeds} feeds per day at ${mlPerFeed} ml per feed,
-          plus ${pumpPriming} ml for pump priming and ${spillExtra} ml for spills.
-          The calculation adjusts for the powder adding ${powderVolumePerScoop} oz per scoop.
+          Based on ${feeds} feeds per day at ${mlPerFeed} ml per feed, plus a pump prime of ${pumpPriming} ml and an extra ${spillExtra} ml for spills.
         </p>
       `;
     }
