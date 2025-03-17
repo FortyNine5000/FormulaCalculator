@@ -68,51 +68,24 @@
       font-style: italic; 
       color: #333; 
     }
-    /* Pump Selection Radio Group */
-    .pump-options {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+    /* Pump selection radio buttons */
+    .pump-radio-group {
       margin-top: 10px;
     }
-    .pump-option {
-      flex: 1 1 45%;
-      background: #fafafa;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      padding: 5px;
-      text-align: center;
-      cursor: pointer;
-    }
-    .pump-option input[type="radio"] {
-      display: none;
-    }
-    .pump-option img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 4px;
-    }
-    .pump-option label {
+    .pump-radio-group label {
       display: block;
-      margin-top: 5px;
-      font-size: 0.9em;
-    }
-    /* Highlight selected option */
-    .pump-option.selected {
-      border-color: #007BFF;
-      background: #e0f0ff;
+      margin: 5px 0;
+      font-weight: normal;
     }
     @media (max-width: 480px) {
-      .pump-option {
-        flex: 1 1 100%;
-      }
+      /* Additional mobile tweaks if needed */
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>G-Tube Formula Calculator</h1>
-    <p>This tool calculates the water and formula powder needed (adjusting for powder volume) and displays manufacturer mixing instructions. It also lets you select your pump type (with images) so its priming volume is factored into the mix.</p>
+    <p>This tool calculates the water and formula powder needed (adjusting for powder volume) and displays manufacturer mixing instructions. It also lets you select your pump type so its priming volume is factored into the mix.</p>
     <form id="calcForm">
       <!-- Formula selection -->
       <label for="formulaSelect">Select Formula:</label>
@@ -131,7 +104,7 @@
       </select>
       
       <div id="manufacturerInstructions" class="manufacturer-instructions">
-        <!-- Manufacturer instructions will be inserted here -->
+        <!-- Manufacturer instructions will appear here -->
       </div>
       
       <div id="customFields" class="custom-fields">
@@ -157,31 +130,11 @@
       
       <!-- Pump Selection Section -->
       <label>Select Pump Type:</label>
-      <div class="pump-options" id="pumpOptions">
-        <!-- Infinity -->
-        <div class="pump-option" onclick="selectPumpOption(this, 'Infinity');">
-          <input type="radio" name="pumpType" value="Infinity">
-          <img src="https://via.placeholder.com/100?text=Infinity" alt="Infinity Pump">
-          <label>Infinity (15 mL prime)</label>
-        </div>
-        <!-- Kangaroo OMNI -->
-        <div class="pump-option" onclick="selectPumpOption(this, 'Kangaroo OMNI');">
-          <input type="radio" name="pumpType" value="Kangaroo OMNI">
-          <img src="https://via.placeholder.com/100?text=Kangaroo+OMNI" alt="Kangaroo OMNI">
-          <label>Kangaroo OMNI (20 mL prime)</label>
-        </div>
-        <!-- Puggle -->
-        <div class="pump-option" onclick="selectPumpOption(this, 'Puggle');">
-          <input type="radio" name="pumpType" value="Puggle">
-          <img src="https://via.placeholder.com/100?text=Puggle" alt="Puggle">
-          <label>Puggle (10 mL prime)</label>
-        </div>
-        <!-- Other -->
-        <div class="pump-option" onclick="selectPumpOption(this, 'Other');">
-          <input type="radio" name="pumpType" value="Other">
-          <img src="https://via.placeholder.com/100?text=Other" alt="Other Pump">
-          <label>Other</label>
-        </div>
+      <div class="pump-radio-group">
+        <label><input type="radio" name="pumpType" value="Infinity" checked> Infinity (15 mL prime)</label>
+        <label><input type="radio" name="pumpType" value="Kangaroo OMNI"> Kangaroo OMNI (20 mL prime)</label>
+        <label><input type="radio" name="pumpType" value="Puggle"> Puggle (10 mL prime)</label>
+        <label><input type="radio" name="pumpType" value="Other"> Other</label>
       </div>
       
       <div id="customPump" class="custom-pump">
@@ -277,16 +230,6 @@
       "Other": 15 // default if custom not provided
     };
     
-    // Function to handle pump option selection with images
-    function selectPumpOption(divElem, value) {
-      // Deselect all options
-      const options = document.querySelectorAll('.pump-option');
-      options.forEach(opt => opt.classList.remove('selected'));
-      // Mark this one as selected and check its radio button
-      divElem.classList.add('selected');
-      divElem.querySelector('input[type="radio"]').checked = true;
-    }
-    
     // Show/hide custom fields for custom formula settings
     function updateCustomFields() {
       const formulaSelect = document.getElementById('formulaSelect').value;
@@ -300,6 +243,26 @@
       const instructionsDiv = document.getElementById('manufacturerInstructions');
       instructionsDiv.innerHTML = formulaData[formulaName].instructions;
     }
+    
+    // Show or hide custom pump priming field if "Other" is selected
+    function updateCustomPumpField() {
+      const pumpRadios = document.getElementsByName('pumpType');
+      let selected;
+      for (let radio of pumpRadios) {
+        if (radio.checked) {
+          selected = radio.value;
+          break;
+        }
+      }
+      const customPumpDiv = document.getElementById('customPump');
+      customPumpDiv.style.display = (selected === "Other") ? "block" : "none";
+    }
+    
+    // Listen for changes on pump selection radio buttons
+    const pumpRadios = document.getElementsByName('pumpType');
+    pumpRadios.forEach(radio => {
+      radio.addEventListener('change', updateCustomPumpField);
+    });
     
     // Main calculation function
     function calculateFormula() {
@@ -322,32 +285,30 @@
       const spillExtra = parseFloat(document.getElementById('spillExtra').value);
       
       // Determine pump priming volume based on selected pump
-      let pumpPriming = 0;
       const pumpRadios = document.getElementsByName('pumpType');
-      let pumpSelected = false;
-      // If radio buttons exist, get value from selected; else, use default from pumpData
-      const selectedRadio = document.querySelector('input[name="pumpType"]:checked');
-      if (selectedRadio) {
-        pumpSelected = selectedRadio.value;
-      } else {
-        // Fallback: check custom selection via our pump options div selection
-        const pumpOption = document.querySelector('.pump-option.selected');
-        pumpSelected = pumpOption ? pumpOption.querySelector('input[type="radio"]').value : "Infinity";
+      let pumpSelected = "Infinity"; // default
+      for (let radio of pumpRadios) {
+        if (radio.checked) {
+          pumpSelected = radio.value;
+          break;
+        }
       }
+      
+      let pumpPriming;
       if (pumpSelected === "Other") {
         pumpPriming = parseFloat(document.getElementById('customPumpPriming').value);
       } else {
         pumpPriming = pumpData[pumpSelected];
       }
       
-      // Total final formula volume in ml and oz
+      // Total final formula volume in ml and convert to oz (1 oz = 29.5735 ml)
       const totalFinalVolumeML = (feeds * mlPerFeed) + pumpPriming + spillExtra;
       const totalFinalVolumeOz = totalFinalVolumeML / 29.5735;
       
       // Scaling factor for desired vs. baseline calories per oz
       const scalingFactor = desiredCal / baselineCal;
       
-      // Calculate water volume (W) in oz such that:
+      // Calculate water volume (W) in oz:
       // Final Volume = Water Volume + (scalingFactor * waterVolume * scoopsPerOz * powderVolumePerScoop)
       const waterVolumeOz = totalFinalVolumeOz / (1 + (scalingFactor * scoopsPerOz * powderVolumePerScoop));
       
@@ -357,10 +318,10 @@
       // Convert water volume back to ml
       const waterVolumeML = waterVolumeOz * 29.5735;
       
-      // Since the calculation is designed to reach desiredCal, final concentration is:
+      // Final output concentration is set by desiredCal
       const finalConcentration = desiredCal;
       
-      // Display results with confirmation of output concentration
+      // Display results
       const outputDiv = document.getElementById('output');
       outputDiv.style.display = "block";
       outputDiv.innerHTML = `
@@ -375,6 +336,9 @@
         </p>
       `;
     }
+    
+    // Initialize manufacturer instructions on page load
+    updateManufacturerInstructions();
   </script>
 </body>
 </html>
